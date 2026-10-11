@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestionale</title>
+<style>
+html, body { height: 100%; margin: 0; background: #0b0d0e; color: #7fbf8f; font: 15px monospace; }
+body { display: flex; align-items: center; justify-content: center; text-align: center; }
+button { background: none; color: inherit; font: inherit; border: 1px solid currentColor; padding: 6px 14px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div>
+<p id="stato">Apro il gioco…</p>
+<p><button id="riprova" hidden>Riprova</button></p>
+</div>
+<script>
+// Questa pagina non cambia da una build all'altra: chiede quale build c'è e ci va. La scrive
+// il flusso «Versione web» accanto a `versione.json`.
+//
+// Le due richieste portano un pezzo che cambia a ogni apertura, oltre a saltare la cache del
+// browser: davanti a GitHub Pages c'è una cache sua, e nei minuti dopo una pubblicazione può
+// rispondere ancora con la build di prima, la cui pagina non c'è più. Per questo si controlla
+// che la pagina della build risponda prima di andarci, e se non risponde lo si dice.
+var stato = document.getElementById('stato');
+var riprova = document.getElementById('riprova');
+riprova.addEventListener('click', function () { apri(); });
+
+function fresca(indirizzo) {
+	return fetch(indirizzo + '?' + Date.now(), { cache: 'no-store' });
+}
+
+function apri() {
+	riprova.hidden = true;
+	stato.textContent = 'Apro il gioco…';
+	fresca('versione.json')
+		.then(function (risposta) {
+			if (!risposta.ok) { throw new Error(String(risposta.status)); }
+			return risposta.json();
+		})
+		.then(function (versione) {
+			if (!/^[A-Za-z0-9._-]+\.html$/.test(versione.pagina)) { throw new Error('pagina'); }
+			return fresca(versione.pagina).then(function (risposta) {
+				if (!risposta.ok) { throw new Error(String(risposta.status)); }
+				location.replace(versione.pagina);
+			});
+		})
+		.catch(function () {
+			stato.textContent = 'La versione nuova sta arrivando: riprova fra qualche minuto.';
+			riprova.hidden = false;
+		});
+}
+
+apri();
+</script>
+</body>
+</html>
